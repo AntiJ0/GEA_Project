@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Cinemachine;
+using UnityEngine.UI;
 
 public class PlayerController : MonoBehaviour
 {
@@ -17,6 +18,9 @@ public class PlayerController : MonoBehaviour
     private Vector3 velocity;
     public bool isGrounded;
 
+    public int maxHp = 10;
+    private int currentHp;
+
     // 달리기 체크용 변수
     private bool isSprinting;
 
@@ -30,6 +34,8 @@ public class PlayerController : MonoBehaviour
     // CinemachineSwitcher 스크립트와 연결할 변수
     public bool usingFreeLook = false;
 
+    public Slider hpSlider;
+
     void Start()
     {
         controller = GetComponent<CharacterController>();
@@ -37,10 +43,18 @@ public class PlayerController : MonoBehaviour
 
         // FreeLook 카메라의 기본 FOV 저장
         defaultFOV = freeLookCam.m_Lens.FieldOfView;
+        currentHp = maxHp;
+        hpSlider.value = 1f;
     }
 
     void Update()
     {
+        if (Input.GetKeyDown(KeyCode.Tab))
+        {
+            pov.m_HorizontalAxis.Value = transform.eulerAngles.y;
+            pov.m_VerticalAxis.Value = 0f;
+        }
+
         if (camSwitcher != null)
             usingFreeLook = camSwitcher.usingFreeLook;
 
@@ -88,5 +102,21 @@ public class PlayerController : MonoBehaviour
         transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, rotationSpeed * Time.deltaTime);
 
         freeLookCam.m_Lens.FieldOfView = isSprinting ? zoomOutFOV : defaultFOV;
+    }
+
+    public void TakeDamage(int damage)
+    {
+        currentHp -= damage;
+        hpSlider.value = (float)currentHp / maxHp;
+
+        if (currentHp <= 0)
+        {
+            Die();
+        }
+    }
+
+    void Die()
+    {
+        Destroy(gameObject);
     }
 }
