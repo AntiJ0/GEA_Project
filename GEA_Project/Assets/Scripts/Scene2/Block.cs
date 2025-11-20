@@ -16,9 +16,21 @@ public class Block : MonoBehaviour
     void Awake()
     {
         hp = maxHp;
-        if (GetComponent<Collider>() == null) gameObject.AddComponent<BoxCollider>();
-        if (string.IsNullOrEmpty(gameObject.tag) || gameObject.tag == "Untagged")
+
+        if (GetComponent<Collider>() == null)
+        {
+            var bc = gameObject.AddComponent<BoxCollider>();
+            bc.size = Vector3.one;
+        }
+
+        try
+        {
             gameObject.tag = "Block";
+        }
+        catch
+        {
+            Debug.LogWarning("[Block] 'Block' 태그가 프로젝트에 존재하지 않습니다. 에디터 태그 설정을 확인하세요.");
+        }
     }
 
     public void Hit(int damage, Inventory inven)

@@ -5,13 +5,14 @@ public class UIInventory : MonoBehaviour
 {
     public UIInventorySlot[] slots;
 
-    [Header("아이콘 스프라이트 직접 연결")]
     public Sprite dirtIcon;
     public Sprite grassIcon;
     public Sprite waterIcon;
 
     private Dictionary<BlockType, Sprite> icons = new();
     private Inventory _inventory;
+
+    public int selectedIndex { get; private set; } = -1;
 
     void Awake()
     {
@@ -28,34 +29,88 @@ public class UIInventory : MonoBehaviour
             _inventory.OnChanged += RefreshUI;
             RefreshUI();
         }
-        else
-        {
-            Debug.LogError("[UIInventory] Inventory not found in scene!");
-        }
     }
 
     public void RefreshUI()
     {
         if (_inventory == null) return;
 
-        int i = 0;
-        foreach (var kvp in _inventory.items)
-        {
-            if (i >= slots.Length) break;
+        for (int k = 0; k < slots.Length; k++)
+            slots[k].Clear();
 
-            if (kvp.Value <= 0)
-            {
-                slots[i].Clear();
-            }
-            else
-            {
-                Sprite icon = icons.ContainsKey(kvp.Key) ? icons[kvp.Key] : null;
-                slots[i].SetItem(icon, kvp.Value);
-            }
-            i++;
+        int slotIndex = 0;
+
+        foreach (var pair in _inventory.GetAll())
+        {
+            if (slotIndex >= slots.Length) break;
+            BlockType type = pair.Key;
+            int count = pair.Value;
+
+            Sprite icon = icons.ContainsKey(type) ? icons[type] : null;
+
+            slots[slotIndex].SetItem(icon, count, type);
+            slotIndex++;
         }
 
-        for (; i < slots.Length; i++)
-            slots[i].Clear();
+        if (selectedIndex >= 0 && selectedIndex < slots.Length)
+        {
+            if (slots[selectedIndex].IsEmpty())
+                Deselect();
+        }
+
+        UpdateSlotSelections();
+    }
+
+    public void ToggleSelectSlot(int index)
+    {
+        if (index < 0 || index >= slots.Length) return;
+
+        if (selectedIndex == index)
+            Deselect();
+        else
+            Select(index);
+    }
+
+    public void Select(int index)
+    {
+        if (index < 0 || index >= slots.Length) return;
+        if (slots[index].IsEmpty()) return;
+
+        selectedIndex = index;
+        UpdateSlotSelections();
+    }
+
+    public void Deselect()
+    {
+        selectedIndex = -1;
+        UpdateSlotSelections();
+    }
+
+    private void UpdateSlotSelections()
+    {
+        for (int j = 0; j < slots.Length; j++)
+            slots[j].SetSelected(j == selectedIndex);
+    }
+
+    public BlockType? GetSelectedBlockType()
+    {
+        if (selectedIndex < 0 || selectedIndex >= slots.Length) return null;
+        return slots[selectedIndex].blockType;
+    }
+
+    public int GetSelectedCount()
+    {
+        if (selectedIndex < 0 || selectedIndex >= slots.Length) return 0;
+        return slots[selectedIndex].count;
+    }
+
+    public bool ConsumeOneFromSelected()
+    {
+        if (_inventory == null) return false;
+
+        var bt = GetSelectedBlockType();
+        if (bt == null) return false;
+
+        return _inventory.Consume(bt.Value, 1);
     }
 }
